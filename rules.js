@@ -31,6 +31,8 @@ const EGYPT = "eg"
 const US = "us"
 
 const NONE = "none"
+const ARMY = "army"
+const CORPS = "corps"
 
 const STACKING_LIMIT = 3
 
@@ -762,7 +764,96 @@ function goto_play_ops(card) {
 
 function goto_play_sr(card) {
     record_action(ACTION_SR, card)
-    // TODO
+    let card_data = data.cards[card]
+    game.sr = {
+        pts: card_data.sr,
+        unit: 0,
+        done: []
+    }
+
+    discard_card(card, 'for sr')
+    start_next_sr()
+}
+
+function start_next_sr() {
+    if (game.sr.pts <= 0) {
+        end_sr()
+        goto_end_action()
+    } else {
+        game.state = 'choose_sr_unit'
+    }
+}
+
+states.choose_sr_unit = {
+    inactive: "Selecting Unit to SR",
+    prompt() {
+        view.prompt = `Select a unit to move by SR (${game.sr.pts} points remaining)`
+        game.location.forEach((loc, p) => {
+            if (loc != 0 && data.pieces[p].faction == game.active && can_sr(p)) {
+                gen_action_piece(p)
+            }
+        })
+        gen_action_undo()
+        if (game.sr.unit != 0) {
+            gen_action_next()
+        } else {
+            gen_action_done()
+        }
+    },
+    piece(p) {
+        if (game.sr.unit != 0) {
+            push_undo()
+            game.sr.unit = p
+            game.sr.pts -= sr_cost(p)
+        } else if (game.sr.unit == p) {
+            game.sr.unit = 0
+            game.sr.pts += sr_cost(p)
+        }
+    },
+    next() {
+        push_undo()
+        game.state = 'choose_sr_destination'
+    },
+    done() {
+        end_sr()
+        goto_end_action()
+    }
+}
+
+function sr_cost(p) {
+    return data.pieces[p].type == ARMY ? 4 : 1;
+}
+
+function can_sr(p) {
+    let piece_data = data.pieces[p]
+    if (sr_cost(p) > game.sr.pts) return false
+    if (set_has(game.sr.done, p)) return false
+
+    // TODO: Additional restrictions on SR from 13.1 - 13.2
+}
+
+states.choose_sr_destination = {
+    inactive: "Choosing destination for Strategic Redeployment",
+    prompt() {
+        view.prompt = `Choose destination for Strategic Redeployment`
+        let destinations = find_sr_destinations()
+        destinations.forEach(gen_action_space)
+    },
+    space(s) {
+        push_undo()
+        set_add(game.sr.done, game.sr.unit)
+        game.location[game.sr.unit] = s
+        start_next_sr()
+    }
+}
+
+function find_sr_destinations() {
+    // TODO: Find eligible SR destinations
+    return []
+}
+
+function end_sr() {
+    delete game.sr
 }
 
 function goto_play_rps(card) {
@@ -1436,8 +1527,7 @@ states.apply_defender_losses = {
     piece(p) {
         game.attack.defender_losses_taken += get_piece_lf(p)
         if (is_unit_reduced(p)) {
-            // TODO: eliminate piece. If there is an available replacement in the reserve box, place it and remove the
-            // eliminated piece to replaceable units, otherwise remove the piece permanently
+            // TODO: eliminate piece. If there is an available replacement in the reserve box, place it and remove the eliminated piece to replaceable units, otherwise remove the piece permanently
             game.removed.push(p)
             game.location[p] = 0
         } else {
