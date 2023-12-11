@@ -54,11 +54,23 @@ const GUNS_OF_AUGUST = 66
 const RAPE_OF_BELGIUM = 13
 
 // Space indices
+const LONDON = 1
 const AMIENS = 16
 const CALAIS = 17
 const OSTEND = 18
 const LIEGE = 33
 const KOBLENZ = 41
+const ESSEN = 43
+const BRESLAU = 94
+const BELGRADE = 125
+const PETROGRAD = 143
+const MOSCOW = 152
+const KHARKOV = 170
+const CAUCASUS = 186
+const SOFIA = 198
+const GALLIPOLI = 212
+const CONSTANTINOPLE = 219
+const RESERVE_BOX = 282
 
 // Piece indices
 const GE_1_ARMY = 1
@@ -830,6 +842,20 @@ function can_sr(p) {
     if (set_has(game.sr.done, p)) return false
 
     // TODO: Additional restrictions on SR from 13.1 - 13.2
+    // TODO: if unit is out of supply, return false
+    // TODO: if unit is Russian, SR only if they are in Russia or Reserve Box (13.1.6)
+    // TODO: if enemy controls or besieges a nation's capital, no corps can SR from the Reserve Box (13.1.11)
+    // TODO: Units may not SR to or from Reserve Box if German/Austrian tracing supply from Sofia/Constantinople,
+    //  Turkish tracing supply to Essen, Breslau, or Sofia, Bulgarian tracing supply to Essen, Breslau, or
+    //  Constantinople, and Russian/Romanian tracing supply to Belgrade (13.1.12)
+
+    // TODO: No more than 1 British Corps (incl Aus, excl PT, CND, and BEF) may use SR to or from Near East or SR by sea
+    //  to or from Near East per turn (13.2.1)
+    // TODO: No sea or Reserve Box SR to or from NE for FR, IT, GR, RO, SB, US, BE, CND, PT, BEF (13.2.1)
+    // TODO: No sea SR for RU corps to or from NE (Reserve Box allowed) (13.2.1)
+    // TODO: No more than one RU corps to or from Near East map per turn (13.2.2)
+
+    // TODO: No more than one CP corps SR to or from NE map per turn (excl TU) (13.2.3)
 }
 
 states.choose_sr_destination = {
@@ -1979,6 +2005,44 @@ function gen_action_undo() {
 
 function card_name(card) {
     return `#${card} ${cards[card].name} [${cards[card].ops}/${cards[card].sr}]`
+}
+
+// === SUPPLY ===
+
+function update_supply() {
+    let supplied_spaces = data.spaces.map((s) => {
+        return {
+            paths: {}
+        }
+    })
+
+    const cp_sources = [ESSEN, BRESLAU, SOFIA, CONSTANTINOPLE]
+    const ap_sources = [PETROGRAD, MOSCOW, KHARKOV, CAUCASUS, BELGRADE, LONDON]
+
+    // TODO: For each supply source, recursively flood fill the spaces, tracking the shortest path to each space from
+    //  each supply source
+
+    // Trace supply through any number of friendly-controlled spaces
+    // Cannot trace supply through:
+    //      A space containing an enemy unit
+    //      An enemy controlled space, unless besieging an enemy fort in the space
+
+    // Can trace through friendly, unbesieged ports
+    //      CP can only use friendly ports in Germany and Russia
+    //      CP cannot use a besieged Riga for sea supply
+    //      Allies can use friendly ports NOT in Germany and Russia for supply (ex: Constantinople only if they control Gallipoli)
+
+    // Units always in supply:
+    //      Montenegrin, British ANA, and Turkish SN units
+    //      Serbian units in Serbia
+    //      Turkish units in Medina are always in supply for attrition purposes only (may not activate, SR, take replacements, or use combat cards)
+
+    // CP supply sources are Essen, Breslau, Sofia, and Constantinople
+    // Russian, Serbian, and Romanian supply sources are Belgrade and the Russian map edge spaces
+    // Serbian units may use Salonika as a supply source if Allies control
+    // All other Allies trace supply from London
+
+    // Spaces may use any of their side's supply sources when checking attrition
 }
 
 // === CARD EVENTS ===
