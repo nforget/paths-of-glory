@@ -1,0 +1,19 @@
+{
+  "name": "paths-of-glory",
+  "version": "0.1.0",
+  "description": "Implementation of the board game Paths of Glory for the Rally the Troops platform",
+  "main": "play.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nforget/paths-of-glory.git"
+  },
+  "author": "Nathan Forget",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nforget/paths-of-glory/issues"
+  },
+  "homepage": "https://github.com/nforget/paths-of-glory#readme"
+}
