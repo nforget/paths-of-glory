@@ -7538,6 +7538,10 @@ const spaces = [
         "h": 45,
         "nation": "eg",
         "faction": "cp"
+    },
+    {
+        "id": 282,
+        "name": "Reserve Box"
     }
 ]
 

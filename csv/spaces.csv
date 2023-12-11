@@ -280,3 +280,4 @@ id,map,name,x,y,w,h,nation,faction,terrain,supply,vp,fort,apport,cpport,capital
 279,neareast,Port Said,3815,2934,45,45,eg,ap,,,,,TRUE,,
 280,neareast,Alexandria,3697,2988,45,45,eg,ap,,,,,TRUE,,
 281,neareast,Libya,3555,2972,45,45,eg,cp,,,,,,,
+282,,Reserve Box,,,,,,,,,,,,,
