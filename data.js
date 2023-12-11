@@ -1,4 +1,60 @@
 
+const constants = {}
+
+constants.AP = "ap"
+constants.CP = "cp"
+
+constants.FRANCE = "fr"
+constants.BRITAIN = "br"
+constants.BELGIUM = "be"
+constants.ITALY = "it"
+constants.GERMANY = "ge"
+constants.AUSTRIA_HUNGARY = "ah"
+constants.RUSSIA = "ru"
+constants.MONTENEGRO = "mn"
+constants.SERBIA = "sb"
+constants.BULGARIA = "bu"
+constants.ALBANIA = "al"
+constants.GREECE = "gr"
+constants.ROMANIA = "ro"
+constants.TURKEY = "tu"
+constants.PERSIA = "pe"
+constants.ARABIA = "ar"
+constants.EGYPT = "eg"
+constants.US = "us"
+
+constants.NONE = "none"
+
+constants.STACKING_LIMIT = 3
+
+constants.COMMITMENT_MOBILIZATION = "mobilization"
+constants.COMMITMENT_LIMITED = "limited"
+constants.COMMITMENT_TOTAL = "total"
+
+constants.ACTION_EVENT = "evt"
+constants.ACTION_OP = "op"
+constants.ACTION_SR = "sr"
+constants.ACTION_RP = "rp"
+constants.ACTION_REINFORCEMENTS = "reinf"
+constants.ACTION_NEUTRAL_ENTRY = "entry"
+constants.ACTION_1_OP = "oneop"
+constants.ACTION_PEACE_TERMS = "peace"
+
+// Card indices
+constants.GUNS_OF_AUGUST = 66
+constants.RAPE_OF_BELGIUM = 13
+
+// Space indices
+constants.AMIENS = 16
+constants.CALAIS = 17
+constants.OSTEND = 18
+constants.LIEGE = 33
+constants.KOBLENZ = 41
+
+// Piece indices
+constants.GE_1_ARMY = 1
+constants.GE_2_ARMY = 2
+
 const cards = [
     {},
     {
@@ -9484,4 +9540,4 @@ for (let i = 0; i < edges.length; i++) {
     spaces[edge.b].connections.push(edge.a);
 }
 
-if (typeof module !== 'undefined') module.exports = {cards,pieces,spaces}
+if (typeof module !== 'undefined') module.exports = {cards, pieces, spaces, constants}

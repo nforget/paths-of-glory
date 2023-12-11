@@ -1,71 +1,20 @@
 "use strict"
 
-const data = require("./data")
-const {cards} = require("./data")
+const {cards, pieces, spaces, constants: k} = require("./data")
 
 let game, view
-
 let states = {}
-let events = {}
+let rules = {}
 
-const AP = "ap"
-const CP = "cp"
+const events = require("./events")
+events.init(game, rules)
 
-const FRANCE = "fr"
-const BRITAIN = "br"
-const BELGIUM = "be"
-const ITALY = "it"
-const GERMANY = "ge"
-const AUSTRIA_HUNGARY = "ah"
-const RUSSIA = "ru"
-const MONTENEGRO = "mn"
-const SERBIA = "sb"
-const BULGARIA = "bu"
-const ALBANIA = "al"
-const GREECE = "gr"
-const ROMANIA = "ro"
-const TURKEY = "tu"
-const PERSIA = "pe"
-const ARABIA = "ar"
-const EGYPT = "eg"
-const US = "us"
-
-const NONE = "none"
-
-const STACKING_LIMIT = 3
-
-const COMMITMENT_MOBILIZATION = "mobilization"
-const COMMITMENT_LIMITED = "limited"
-const COMMITMENT_TOTAL = "total"
-
-const ACTION_EVENT = "evt"
-const ACTION_OP = "op"
-const ACTION_SR = "sr"
-const ACTION_RP = "rp"
-const ACTION_REINFORCEMENTS = "reinf"
-const ACTION_NEUTRAL_ENTRY = "entry"
-const ACTION_1_OP = "oneop"
-const ACTION_PEACE_TERMS = "peace"
-
-// Card indices
-const GUNS_OF_AUGUST = 66
-const RAPE_OF_BELGIUM = 13
-
-// Space indices
-const AMIENS = 16
-const CALAIS = 17
-const OSTEND = 18
-const LIEGE = 33
-const KOBLENZ = 41
-
-// Piece indices
-const GE_1_ARMY = 1
-const GE_2_ARMY = 2
+const rp = require("./rules/rp")
+rp.init(game, states, rules)
 
 const HISTORICAL = "Historical"
 exports.scenarios = [ HISTORICAL ]
-
-exports.roles = [ AP, CP ]
+exports.roles = [ k.AP, k.CP ]
 
 exports.action = function (state, current, action, arg) {
     game = state
@@ -151,9 +100,9 @@ exports.view = function(state, current) {
         events: game.events
     }
 
-    if (current === AP) {
+    if (current === k.AP) {
         view.hand = game.ap.hand
-    } else if (current === CP) {
+    } else if (current === k.CP) {
         view.hand = game.cp.hand
     } else {
         view.hand = []
@@ -220,7 +169,7 @@ exports.setup = function (seed, scenario, options) {
         },
 
         // Units
-        location: data.pieces.map(() => 0),
+        location: pieces.map(() => 0),
         reduced: [],
         removed: [],
 
@@ -229,28 +178,28 @@ exports.setup = function (seed, scenario, options) {
             move: [],
             attack: []
         },
-        control: data.spaces.map((s) => s.faction === CP ? 1 : 0),
+        control: spaces.map((s) => s.faction === k.CP ? 1 : 0),
 
-        // AP state
+        // k.AP state
         ap: {
             deck: [],
             discard: [],
             removed: [],
             hand: [],
             commitment: COMMITMENT_MOBILIZATION,
-            mo: NONE,
+            mo: k.NONE,
             ws: 0,
             actions: []
         },
 
-        // CP state
+        // k.CP state
         cp: {
             deck: [],
             discard: [],
             removed: [],
             hand: [],
             commitment: COMMITMENT_MOBILIZATION,
-            mo: NONE,
+            mo: k.NONE,
             ws: 0,
             ru_vp: 0,
             actions: []
@@ -358,13 +307,13 @@ exports.setup = function (seed, scenario, options) {
 }
 
 function setup_initial_decks() {
-    for (let i = 1; i < data.cards.length; i++) {
+    for (let i = 1; i < cards.length; i++) {
         if (i == GUNS_OF_AUGUST && game.options.start_with_guns_of_august) {
             game.cp.hand.push(i)
-        } else if (data.cards[i].commitment == COMMITMENT_MOBILIZATION) {
-            if (data.cards[i].faction == AP) {
+        } else if (cards[i].commitment == COMMITMENT_MOBILIZATION) {
+            if (cards[i].faction == k.AP) {
                 game.ap.deck.push(i)
-            } else if (data.cards[i].faction == CP) {
+            } else if (cards[i].faction == k.CP) {
                 game.cp.deck.push(i)
             }
         }
@@ -379,8 +328,8 @@ function goto_start_turn() {
     roll_mandated_offensives()
 
     game.state = 'action_phase'
-    game.active = CP
-    game.phasing = CP
+    game.active = k.CP
+    game.phasing = k.CP
     log_br()
     log_h2(`${game.active}`)
     log_br()
@@ -405,7 +354,7 @@ function draw_card(deck) {
     return c
 }
 
-function discard_card(card, reason) {
+rules.discard_card = function (card, reason) {
     let active_player = get_active_player()
 
     if (reason)
@@ -458,8 +407,8 @@ function setup_piece(nation, unit, space, reduced) {
 }
 
 function find_unused_piece(nation, name) {
-    for (let i = 0; i < data.pieces.length; i++) {
-        let piece = data.pieces[i]
+    for (let i = 0; i < pieces.length; i++) {
+        let piece = pieces[i]
         if (piece.name === name && piece.nation === nation && game.location[i] == 0) {
             return i
         }
@@ -468,8 +417,8 @@ function find_unused_piece(nation, name) {
 }
 
 function find_space(name) {
-    for (let i = 0; i < data.spaces.length; i++) {
-        if (data.spaces[i].name === name) {
+    for (let i = 0; i < spaces.length; i++) {
+        if (spaces[i].name === name) {
             return i
         }
     }
@@ -477,14 +426,14 @@ function find_space(name) {
 }
 
 function for_each_piece_in_space(s, f) {
-    for (let p = 1; p < data.pieces.length; ++p)
+    for (let p = 1; p < pieces.length; ++p)
         if (game.location[p] === s)
             f(p)
 }
 
 function get_pieces_in_space(s) {
     let pieces = []
-    for (let p = 1; p < data.pieces.length; ++p)
+    for (let p = 1; p < pieces.length; ++p)
         if (game.location[p] === s)
             pieces.push(p)
     return pieces
@@ -497,23 +446,23 @@ function nation_at_war(nation) {
 // === Mandated Offensives ===
 
 const AP_MO_TABLE = {
-    1: FRANCE,
-    2: FRANCE,
-    3: BRITAIN,
-    4: ITALY,
-    5: ITALY,
-    6: RUSSIA,
-    7: NONE
+    1: k.FRANCE,
+    2: k.FRANCE,
+    3: k.BRITAIN,
+    4: k.ITALY,
+    5: k.ITALY,
+    6: k.RUSSIA,
+    7: k.NONE
 }
 
 const AH_IT = "ah_it"
 const CP_MO_TABLE = {
-    1: AUSTRIA_HUNGARY,
+    1: k.AUSTRIA_HUNGARY,
     2: AH_IT,
-    3: TURKEY,
-    4: GERMANY,
-    5: NONE,
-    6: NONE
+    3: k.TURKEY,
+    4: k.GERMANY,
+    5: k.NONE,
+    6: k.NONE
 }
 
 function roll_mandated_offensives() {
@@ -525,12 +474,12 @@ function roll_mandated_offensives() {
         ap_mo = AP_MO_TABLE[ap_index]
     }
 
-    if (ap_mo == RUSSIA && game.events.bolshevik_revolution) {
-        ap_mo = NONE
+    if (ap_mo == k.RUSSIA && game.events.bolshevik_revolution) {
+        ap_mo = k.NONE
     }
 
-    if (game.turn == 1 && ap_mo == BRITAIN && game.scenario == HISTORICAL) {
-        ap_mo = FRANCE
+    if (game.turn == 1 && ap_mo == k.BRITAIN && game.scenario == HISTORICAL) {
+        ap_mo = k.FRANCE
     }
 
     let cp_roll = roll_die(6)
@@ -544,12 +493,12 @@ function roll_mandated_offensives() {
         cp_mo = CP_MO_TABLE[cp_index]
     }
 
-    if (cp_mo == AH_IT && !nation_at_war(ITALY)) {
-        cp_mo = AUSTRIA_HUNGARY
+    if (cp_mo == AH_IT && !nation_at_war(k.ITALY)) {
+        cp_mo = k.AUSTRIA_HUNGARY
     }
 
-    if (cp_mo == GERMANY && game.events.h_l_take_command) {
-        cp_mo = NONE
+    if (cp_mo == k.GERMANY && game.events.h_l_take_command) {
+        cp_mo = k.NONE
     }
 
     log_h2(`AP rolled ${ap_roll} resulting in a mandated offensive for ${ap_mo}`)
@@ -560,8 +509,8 @@ function roll_mandated_offensives() {
 }
 
 function nation_eligible_for_mo(nation) {
-    if (nation == NONE) return true
-    if (nation == AH_IT) nation = AUSTRIA_HUNGARY
+    if (nation == k.NONE) return true
+    if (nation == AH_IT) nation = k.AUSTRIA_HUNGARY
 
     // TODO: If the nation's capital(s) is/are captured, it is not eligible
     // TODO: If French Mutiny event has been played, France is not eligible
@@ -569,12 +518,12 @@ function nation_eligible_for_mo(nation) {
 }
 
 function satisfies_mo(mo, attackers, defenders, space) {
-    let attacker_nation = mo == AH_IT ? AUSTRIA_HUNGARY : mo;
+    let attacker_nation = mo == AH_IT ? k.AUSTRIA_HUNGARY : mo;
     let valid_attacker = attackers.find((a) => {
-        let piece = data.pieces[a]
+        let piece = pieces[a]
         if (piece.nation != attacker_nation)
             return false
-        if (attacker_nation == BRITAIN &&
+        if (attacker_nation == k.BRITAIN &&
             (piece.counter.startsWith('cnd') ||
                 piece.counter.startsWith('pt') ||
                 piece.counter.startsWith('aus') ||
@@ -587,20 +536,20 @@ function satisfies_mo(mo, attackers, defenders, space) {
         return false
 
     let valid_defender = defenders.find((d) => {
-        let piece = data.pieces[d]
-        if (attacker_nation == FRANCE || attacker_nation == BRITAIN) {
-            return piece.nation == GERMANY
+        let piece = pieces[d]
+        if (attacker_nation == k.FRANCE || attacker_nation == k.BRITAIN) {
+            return piece.nation == k.GERMANY
         }
-        if (attacker_nation == GERMANY) {
-            return piece.nation == BELGIUM || piece.nation == FRANCE || piece.nation == BRITAIN || piece.nation == US
+        if (attacker_nation == k.GERMANY) {
+            return piece.nation == k.BELGIUM || piece.nation == k.FRANCE || piece.nation == k.BRITAIN || piece.nation == US
         }
     })
     if (valid_defender === undefined)
         return false
 
-    let location = data.spaces[space].nation;
-    if (attacker_nation == FRANCE || attacker_nation == BRITAIN || attacker_nation == GERMANY) {
-        if (location != FRANCE && location != BELGIUM && location != GERMANY) {
+    let location = spaces[space].nation;
+    if (attacker_nation == k.FRANCE || attacker_nation == k.BRITAIN || attacker_nation == k.GERMANY) {
+        if (location != k.FRANCE && location != k.BELGIUM && location != k.GERMANY) {
             return false
         }
     }
@@ -609,16 +558,16 @@ function satisfies_mo(mo, attackers, defenders, space) {
         // All other conditions have passed, so the attack satisfies the MO if the defender is Italian, the attacked
         // space is Italian, *or* the attacked space traces supply through Italy
         for (let d of defenders) {
-            if (data.pieces[d].nation == ITALY)
+            if (pieces[d].nation == k.ITALY)
                 return true
         }
 
-        if (location == ITALY)
+        if (location == k.ITALY)
             return true
 
-        let supply_path = get_supply_path(AP, space)
+        let supply_path = get_supply_path(k.AP, space)
         for (let s of supply_path) {
-            if (data.pieces[s].nation == ITALY)
+            if (pieces[s].nation == k.ITALY)
                 return true
         }
     }
@@ -636,25 +585,25 @@ function is_unit_reduced(p) {
 }
 
 function get_piece_mf(p) {
-    return is_unit_reduced(p) ? data.pieces[p].rmf : data.pieces[p].mf
+    return is_unit_reduced(p) ? pieces[p].rmf : pieces[p].mf
 }
 
 function get_piece_cf(p) {
-    return is_unit_reduced(p) ? data.pieces[p].rcf : data.pieces[p].cf
+    return is_unit_reduced(p) ? pieces[p].rcf : pieces[p].cf
 }
 
 function get_piece_lf(p) {
-    return is_unit_reduced(p) ? data.pieces[p].rlf : data.pieces[p].lf
+    return is_unit_reduced(p) ? pieces[p].rlf : pieces[p].lf
 }
 
 function get_active_player() {
-    if (game.active == AP) {
+    if (game.active == k.AP) {
         return game.ap
     }
-    if (game.active == CP) {
+    if (game.active == k.CP) {
         return game.cp
     }
-    throw new Error("Active player is not AP or CP")
+    throw new Error("Active player is not k.AP or k.CP")
 }
 
 function play_card(card) {
@@ -669,7 +618,7 @@ function play_card(card) {
         active_player.discard.push(card)
 }
 
-function record_action(type, card) {
+rules.record_action = function (type, card) {
     let actions = game[game.active].actions
     actions.push({ type: type, card: card })
 }
@@ -698,8 +647,8 @@ states.action_phase = {
     play_event(card) {
         log_br()
         play_card(card)
-        record_action(ACTION_EVENT, card) // TODO: Might need to handle reinforcements differently
-        events[data.cards[card].event].play()
+        rules.record_action(k.ACTION_EVENT, card) // TODO: Might need to handle reinforcements differently
+        events[cards[card].event].play()
     },
     play_ops(card) {
         log_br()
@@ -711,7 +660,7 @@ states.action_phase = {
     },
     play_rps(card) {
         log_br()
-        goto_play_rps(card)
+        rp.goto_play_rps(card)
     },
     offer_peace() {
         log_br()
@@ -734,54 +683,37 @@ function gen_card_menu(card) {
 }
 
 function can_play_event(card) {
-    let evt = events[data.cards[card].event]
+    let evt = events[cards[card].event]
     return (evt !== undefined && evt.can_play())
 }
 
 function can_play_sr(card) {
     let action = get_last_action()
-    return action === undefined || action.type != ACTION_SR
+    return action === undefined || action.type != k.ACTION_SR
 }
 
 function can_play_rps(card) {
     let action = get_last_action()
-    return action === undefined || action.type != ACTION_RP
+    return action === undefined || action.type != k.ACTION_RP
 }
 
 function goto_play_ops(card) {
     if (card === undefined) {
-        record_action(ACTION_1_OP, card)
+        rules.record_action(k.ACTION_1_OP, card)
         game.ops = 1
     } else {
-        record_action(ACTION_OP, card)
-        discard_card(card, 'for ops')
-        game.ops = data.cards[card].ops
+        rules.record_action(k.ACTION_OP, card)
+        game.discard_card(card, 'for ops')
+        game.ops = cards[card].ops
     }
     game.state = 'activate_spaces'
 }
 
 function goto_play_sr(card) {
-    record_action(ACTION_SR, card)
+    rules.record_action(k.ACTION_SR, card)
     // TODO
 }
 
-function goto_play_rps(card) {
-    record_action(ACTION_RP, card)
-    let card_data = data.cards[card]
-
-    game.rp.ge += card_data.rpge ?? 0
-    game.rp.ah += card_data.rpah ?? 0
-    game.rp.fr += card_data.rpfr ?? 0
-    game.rp.br += card_data.rpbr ?? 0
-    game.rp.ru += card_data.rpru ?? 0
-    game.rp.allied += card_data.rpa ?? 0
-    game.rp.bu += card_data.rpbu !== undefined && game.war.bu ? card_data.rpbu : 0
-    game.rp.it += card_data.rpit !== undefined && game.war.it ? card_data.rpit : 0
-    game.rp.tu += card_data.rptu !== undefined && game.war.tu ? card_data.rptu : 0
-
-    discard_card(card, 'for rps')
-    goto_end_action()
-}
 
 function goto_offer_peace() {
     // TODO
@@ -793,7 +725,7 @@ states.activate_spaces = {
         view.prompt = `Activate spaces: click spaces to activate (${game.ops} ops remaining)`
         let spaces = []
         game.location.forEach((loc, p) => {
-            if (loc != 0 && data.pieces[p].faction == game.active) {
+            if (loc != 0 && pieces[p].faction == game.active) {
                 set_add(spaces, loc)
             }
         })
@@ -880,11 +812,11 @@ function goto_next_activation() {
     } else if (game.activated.attack.length > 0) {
         start_attack_activation()
     } else {
-        goto_end_action()
+        rules.goto_end_action()
     }
 }
 
-function goto_end_action() {
+rules.goto_end_action = function() {
     if (game.ap.actions.length < 6 || game.cp.actions.length < 6) {
         game.active = other_faction(game.active)
         game.state = 'action_phase'
@@ -925,7 +857,7 @@ states.choose_move_space = {
 states.choose_pieces_to_move = {
     inactive: 'Choose Units to Move',
     prompt() {
-        view.prompt = `Choose the units to move from ${data.spaces[game.move.initial].name}`
+        view.prompt = `Choose the units to move from ${spaces[game.move.initial].name}`
 
         let selected_all = true
         for_each_piece_in_space(game.move.initial, (p) => {
@@ -981,7 +913,7 @@ states.move_stack = {
         })
 
         if (game.move.spaces_moved < lowest_mf) {
-            let space = data.spaces[game.move.current]
+            let space = spaces[game.move.current]
             space.connections.forEach((conn) => {
                 if (can_move_to(conn))
                     gen_action_space(conn)
@@ -1023,21 +955,21 @@ states.move_stack = {
 function set_control(s, faction) {
     // TODO: Handle special cases for control:
     //
-    // The ANA unit is an exception to case 11.1.14. The ANA does not convert CP spaces it enters. Instead any CP space
+    // The ANA unit is an exception to case 11.1.14. The ANA does not convert k.CP spaces it enters. Instead any k.CP space
     // (except for a besieged fort space) the ANA occupies is considered under Allied control. The instant the ANA
-    // leaves such a space it reverts back to CP control. The ANA has no effect on spaces converted by other Allied
+    // leaves such a space it reverts back to k.CP control. The ANA has no effect on spaces converted by other Allied
     // units—these remain Allied after the ANA exits.
     //
     // The Turkish SN Corps converts spaces per 11.1.14. However, during the Attrition Phase, any spaces it converts
     // (other than the space it occupies) that cannot trace a supply line suffer Attrition. The Libya space suffers
     // normal attrition and can be controlled by the Allied player through normal movement.
-    game.control[s] = faction === CP ? 1 : 0
+    game.control[s] = faction === k.CP ? 1 : 0
 }
 
 function can_move_to(s) {
     let contains_enemy = false
     for_each_piece_in_space(s, (p) => {
-        if (data.pieces[p].faction !== game.active)
+        if (pieces[p].faction !== game.active)
             contains_enemy = true
     })
     if (contains_enemy)
@@ -1064,7 +996,7 @@ function can_move_to(s) {
 function is_fully_stacked(s, faction) {
     let matches = 0
     for (let p = 1; p < game.location.length; ++p) {
-        if (game.location[p] == s && data.pieces[p].faction == faction) {
+        if (game.location[p] == s && pieces[p].faction == faction) {
             matches++
         }
         if (matches == STACKING_LIMIT)
@@ -1076,7 +1008,7 @@ function is_fully_stacked(s, faction) {
 function is_overstacked(s, faction) {
     let matches = 0
     for (let p = 1; p < game.location.length; ++p) {
-        if (game.location[p] == s && data.pieces[p].faction == faction) {
+        if (game.location[p] == s && pieces[p].faction == faction) {
             matches++
         }
         if (matches > STACKING_LIMIT)
@@ -1089,7 +1021,7 @@ function can_end_move(s) {
     if (game.activated.attack.includes(s))
         return false
 
-    if (!game.events.race_to_the_sea && (s == AMIENS || s == CALAIS || s == OSTEND) && game.cp.ws < 4) {
+    if (!game.events.race_to_the_sea && (s == k.AMIENS || s == k.CALAIS || s == k.OSTEND) && game.cp.ws < 4) {
         return false
     }
 
@@ -1210,7 +1142,7 @@ function get_attackable_spaces(attackers) {
 function get_attackable_spaces_for_piece(p) {
     let attackable_spaces = []
     let s = game.location[p]
-    data.spaces[s].connections.forEach((conn) => {
+    spaces[s].connections.forEach((conn) => {
         // TODO: check for national restrictions on the connection
 
         // TODO: Units may attack across dashed lines only if their nationality is indicated on the map adjacent to
@@ -1230,7 +1162,7 @@ function can_be_attacked(s) {
     // TODO: Check if space has an attackable fort
 
     for (let p = 0; p < game.location.length; ++p) {
-        if (game.location[p] == s && data.pieces[p].faction !== game.active) {
+        if (game.location[p] == s && pieces[p].faction !== game.active) {
             retval = true
             break
         }
@@ -1360,7 +1292,7 @@ function resolve_attackers_fire() {
 
     for (let p of game.attack.pieces) {
         attacker_cf += get_piece_cf(p)
-        if (data.pieces[p].type == "army")
+        if (pieces[p].type == "army")
             table = "army"
     }
 
@@ -1371,7 +1303,7 @@ function resolve_attackers_fire() {
     log_h2(`Attacking with ${attacker_cf} combat factors`)
 
     let attacker_shifts = 0
-    let terrain = data.spaces[game.attack.space].terrain;
+    let terrain = spaces[game.attack.space].terrain;
     if (terrain == "mountain") attacker_shifts -= 1
     if (terrain == "swamp") attacker_shifts -= 1
     // TODO: apply attacker shifts for trenches
@@ -1392,7 +1324,7 @@ function resolve_defenders_fire() {
 
     for_each_piece_in_space(game.attack.space, (p) => {
         defender_cf += get_piece_cf(p)
-        if (data.pieces[p].type == "army")
+        if (pieces[p].type == "army")
             table = "army"
     })
 
@@ -1528,7 +1460,7 @@ function build_loss_tree(parent, valid_paths) {
     // For all full strength units, build out the option tree if they are reduced
     for (let i = 0; i < parent.full_strength.length; i++) {
         let unit = parent.full_strength[i]
-        let unit_lf = data.pieces[unit].lf
+        let unit_lf = pieces[unit].lf
         if (unit_lf <= parent.to_satisfy) {
             let node = {
                 picked: [...parent.picked, unit],
@@ -1546,7 +1478,7 @@ function build_loss_tree(parent, valid_paths) {
     // For all reduced units, build out the tree if they are eliminated and possibly replaced
     for (let i = 0; i < parent.reduced.length; i++) {
         let unit = parent.reduced[i]
-        let unit_lf = data.pieces[unit].rlf
+        let unit_lf = pieces[unit].rlf
 
         if (unit_lf <= parent.to_satisfy) {
             let full_replacements = [...parent.full_replacements]
@@ -1659,21 +1591,21 @@ const spaces_where_belgian_units_treated_as_british = [
 function cost_to_activate(space, type) {
     let nations = []
     for_each_piece_in_space(space, (piece) => {
-        let n = data.pieces[piece].nation
-        if (n === "sn") n = TURKEY
+        let n = pieces[piece].nation
+        if (n === "sn") n = k.TURKEY
         if (n === MONTENEGRO) n = SERBIA
         set_add(nations, n)
     })
     let cost = nations.length
 
     if (spaces_where_belgian_units_treated_as_british.includes(space) &&
-        nations.includes(BRITAIN) &&
-        nations.includes(BELGIUM)) {
+        nations.includes(k.BRITAIN) &&
+        nations.includes(k.BELGIUM)) {
         cost--
     }
 
-    if ((data.spaces[space].nation == GERMANY || data.spaces[space].nation == FRANCE) &&
-        nations.includes(FRANCE) &&
+    if ((spaces[space].nation == k.GERMANY || spaces[space].nation == k.FRANCE) &&
+        nations.includes(k.FRANCE) &&
         nations.includes(US)) {
         cost--
     }
@@ -1698,10 +1630,10 @@ function goto_attrition_phase() {
 
     if (game.attrition.ap.length > 0) {
         game.state = 'attrition_phase'
-        game.active = AP
+        game.active = k.AP
     } else if (game.attrition.cp.length > 0) {
         game.state = 'attrition_phase'
-        game.active = CP
+        game.active = k.CP
     } else {
         goto_siege_phase()
     }
@@ -1722,8 +1654,8 @@ states.attrition_phase = {
         // TODO: Eliminate selected piece, permanently for armies, to replaceable box for corps
     },
     done() {
-        if (game.active == AP && game.attrition.cp.length > 0) {
-            game.active == CP
+        if (game.active == k.AP && game.attrition.cp.length > 0) {
+            game.active == k.CP
         } else {
             goto_siege_phase()
         }
@@ -1784,11 +1716,11 @@ function goto_war_status_phase() {
 }
 
 function goto_replacement_phase() {
-    if (has_rps(AP)) {
-        game.active = AP
+    if (has_rps(k.AP)) {
+        game.active = k.AP
         game.state = 'replacement_phase'
-    } else if (has_rps(CP)) {
-        game.active = CP
+    } else if (has_rps(k.CP)) {
+        game.active = k.CP
         game.state = 'replacement_phase'
     } else {
         goto_draw_cards_phase()
@@ -1796,13 +1728,13 @@ function goto_replacement_phase() {
 }
 
 function has_rps(faction) {
-    if (faction == AP) {
+    if (faction == k.AP) {
         if (game.rp.fr > 0) return true
         if (game.rp.br > 0) return true
         if (game.rp.ru > 0) return true
         if (game.rp.allied > 0) return true
         if (game.rp.it > 0) return true
-    } else if (faction == CP) {
+    } else if (faction == k.CP) {
         if (game.rp.ge > 0) return true
         if (game.rp.ah > 0) return true
         if (game.rp.bu > 0) return true
@@ -1812,13 +1744,13 @@ function has_rps(faction) {
 }
 
 function remove_rps(faction) {
-    if (faction == AP) {
+    if (faction == k.AP) {
         game.rp.fr = 0
         game.rp.br = 0
         game.rp.ru = 0
         game.rp.allied = 0
         game.rp.it = 0
-    } else if (faction == CP) {
+    } else if (faction == k.CP) {
         game.rp.ge = 0
         game.rp.ah = 0
         game.rp.bu = 0
@@ -1836,8 +1768,8 @@ states.replacement_phase = {
     // TODO: do a replacement
     done() {
         remove_rps(game.active)
-        if (game.active == AP) {
-            game.active = CP
+        if (game.active == k.AP) {
+            game.active = k.CP
         } else {
             goto_draw_cards_phase()
         }
@@ -1851,7 +1783,7 @@ function goto_draw_cards_phase() {
 }
 
 function other_faction(faction) {
-    return faction === CP ? AP : CP
+    return faction === k.CP ? k.AP : k.CP
 }
 
 function gen_action_next() {
@@ -1889,44 +1821,6 @@ function gen_action_undo() {
 
 function card_name(card) {
     return `#${card} ${cards[card].name} [${cards[card].ops}/${cards[card].sr}]`
-}
-
-// === CARD EVENTS ===
-
-events.guns_of_august = {
-    can_play() {
-        return (game.turn == 1 && game.cp.actions.length == 0)
-    },
-    play() {
-        push_undo()
-
-        // TODO: Destroy the Liege fort
-
-        game.cp.ws += data.cards[GUNS_OF_AUGUST].ws
-
-        game.location[GE_1_ARMY] = LIEGE
-        game.location[GE_2_ARMY] = LIEGE
-        game.activated.attack.push(LIEGE)
-        game.activated.attack.push(KOBLENZ)
-        game.control[LIEGE] = 1
-        game.events.guns_of_august = true
-
-        start_action_round()
-    }
-}
-
-events.rape_of_belgium = {
-    can_play() {
-        return game.events.guns_of_august && game.ap.commitment == COMMITMENT_MOBILIZATION
-    },
-    play() {
-        push_undo()
-
-        game.ap.ws += data.cards[RAPE_OF_BELGIUM].ws
-        game.vp -= 1
-
-        goto_end_action()
-    }
 }
 
 // === COMMON LIBRARY ===
