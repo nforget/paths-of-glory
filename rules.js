@@ -70,7 +70,8 @@ const CAUCASUS = 186
 const SOFIA = 198
 const GALLIPOLI = 212
 const CONSTANTINOPLE = 219
-const RESERVE_BOX = 282
+const AP_RESERVE_BOX = 282
+const CP_RESERVE_BOX = 283
 
 // Piece indices
 const GE_1_ARMY = 1

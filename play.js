@@ -920,6 +920,52 @@ function update_space(s) {
         }
     }
 
+    update_space_highlight(s)
+}
+
+const AP_RESERVE_BOX = 282
+const CP_RESERVE_BOX = 283
+
+function update_reserve_boxes() {
+    let ap_space = spaces[AP_RESERVE_BOX]
+    let cp_space = spaces[CP_RESERVE_BOX]
+    let apStack = ap_space.apStack
+    let cpStack = cp_space.cpStack
+
+    apStack.length = 0
+    cpStack.length = 0
+
+    let insert_piece_in_stack = function (p) {
+        let is_corps = pieces[p].type === CORPS
+        let pe = pieces[p].element
+        pe.classList.remove('offmap')
+        pe.classList.remove("inside")
+        if (view.reduced.includes(p))
+            pe.classList.add("reduced")
+        else
+            pe.classList.remove("reduced")
+        let stack = pieces[p].faction === CP ? cpStack : apStack
+        if (is_corps)
+            unshift_stack(stack, p, pe)
+        else
+            push_stack(stack, p, pe)
+    }
+    for_each_piece_in_space(AP_RESERVE_BOX, insert_piece_in_stack)
+    for_each_piece_in_space(CP_RESERVE_BOX, insert_piece_in_stack)
+
+    if (apStack.length > 0) {
+        layout_stack(apStack, ap_space.x/2, ap_space.y/2, 1)
+    }
+    if (cpStack.length > 0) {
+        layout_stack(cpStack, cp_space.x/2, cp_space.y/2, 1)
+    }
+
+    update_space_highlight(AP_RESERVE_BOX)
+    update_space_highlight(CP_RESERVE_BOX)
+}
+
+function update_space_highlight(s) {
+    let space = spaces[s]
     if (should_highlight_space(s))
         space.element.classList.add("highlight")
     else
@@ -1091,8 +1137,12 @@ function update_map() {
 
     for (let i = 1; i < cards.length; ++i)
         update_card(i)
-    for (let i = 1; i < spaces.length; ++i)
-        update_space(i, false)
+    for (let i = 1; i < spaces.length; ++i) {
+        if (i != AP_RESERVE_BOX && i != CP_RESERVE_BOX) {
+            update_space(i, false)
+        }
+    }
+    update_reserve_boxes()
     for (let i = 0; i < pieces.length; ++i)
         update_piece(i)
 
