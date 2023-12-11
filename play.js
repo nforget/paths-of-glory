@@ -250,9 +250,7 @@ function on_click_space(evt) {
                 return view.actions[option] && view.actions[option].includes(evt.target.space)
             })
             if (options.length > 0) {
-                current_popup_card = 0
-                current_popup_space = evt.target.space
-                show_activation_menu(evt, options)
+                show_popup_menu(evt, "activation_popup", evt.target.space)
             }
         }
     }
@@ -263,43 +261,6 @@ const activation_menu_options = [
     'activate_attack',
     'deactivate'
 ]
-
-let current_popup_space = 0
-
-function show_activation_menu(evt, list) {
-    document.querySelectorAll("#activation_popup div").forEach(e => e.classList.remove('enabled'))
-    for (let item of list) {
-        let e = document.getElementById("menu_" + item)
-        e.classList.add('enabled')
-    }
-    let popup = document.getElementById("activation_popup")
-    popup.style.display = 'block'
-    popup.style.left = (evt.clientX-50) + "px"
-    popup.style.top = (evt.clientY-12) + "px"
-}
-
-function hide_activation_menu() {
-    let popup = document.getElementById("activation_popup")
-    popup.style.display = 'none'
-}
-
-function on_activate_move() {
-    send_action('activate_move', current_popup_space)
-    hide_activation_menu()
-    current_popup_space = 0
-}
-
-function on_activate_attack() {
-    send_action('activate_attack', current_popup_space)
-    hide_activation_menu()
-    current_popup_space = 0
-}
-
-function on_deactivate() {
-    send_action('deactivate', current_popup_space)
-    hide_activation_menu()
-    current_popup_space = 0
-}
 
 function on_focus_space(evt) {
     let id = evt.target.space
@@ -500,6 +461,7 @@ function show_popup_menu(evt, menu_id, target_id, title) {
 
 function hide_popup_menu() {
     document.getElementById("popup").style.display = "none"
+    document.getElementById("activation_popup").style.display = "none"
 }
 
 function is_card_enabled(card) {
@@ -523,26 +485,6 @@ function on_click_card(evt) {
     } else {
         show_popup_menu(evt, "popup", card, cards[card].name)
     }
-}
-
-function on_play_event() {
-    send_action('play_event', current_popup_card)
-    hide_popup_menu()
-}
-
-function on_play_ops() {
-    send_action('play_ops', current_popup_card)
-    hide_popup_menu()
-}
-
-function on_play_sr() {
-    send_action('play_sr', current_popup_card)
-    hide_popup_menu()
-}
-
-function on_play_rps() {
-    send_action('play_rps', current_popup_card)
-    hide_popup_menu()
 }
 
 // BUILD UI
@@ -680,7 +622,6 @@ function build_space(id) {
 
     let elt = space.element = document.createElement("div")
     elt.space = id
-    elt.className = space.type
     elt.style.left = x + "px"
     elt.style.top = y + "px"
     elt.style.width = w + "px"
