@@ -438,36 +438,68 @@ function on_blur_card(evt) {
 
 // CARD MENU
 
-const card_action_menu = [
-    'play_event',
-    'play_ops',
-    'play_sr',
-    'play_rps'
-]
+let card_action_menu = Array.from(document.getElementById("popup").querySelectorAll("li[data-action]")).map(e => e.dataset.action)
 
-let current_popup_card = 0
-
-function show_popup_menu(evt, list) {
-    document.querySelectorAll("#popup div").forEach(e => e.classList.remove('enabled'))
-    for (let item of list) {
-        let e = document.getElementById("menu_" + item)
-        e.classList.add('enabled')
+function is_popup_menu_action(menu_id, target_id) {
+    let menu = document.getElementById(menu_id)
+    for (let item of menu.querySelectorAll("li")) {
+        let action = item.dataset.action
+        if (action)
+            return true
     }
-    let popup = document.getElementById("popup")
-    popup.style.display = 'block'
-    popup.style.left = (evt.clientX-50) + "px"
-    popup.style.top = (evt.clientY-12) + "px"
-    if (current_popup_card)
-        cards[current_popup_card].element.classList.add("selected")
+    return false
+}
+
+function show_popup_menu(evt, menu_id, target_id, title) {
+    let menu = document.getElementById(menu_id)
+
+    let show = false
+    for (let item of menu.querySelectorAll("li")) {
+        let action = item.dataset.action
+        if (action) {
+            if (is_action(action, target_id)) {
+                show = true
+                item.classList.add("action")
+                item.classList.remove("disabled")
+                item.onclick = function () {
+                    send_action(action, target_id)
+                    hide_popup_menu()
+                    evt.stopPropagation()
+                }
+            } else {
+                item.classList.remove("action")
+                item.classList.add("disabled")
+                item.onclick = null
+            }
+        }
+    }
+
+    if (show) {
+        menu.onmouseleave = hide_popup_menu
+        menu.style.display = "block"
+        if (title) {
+            let item = menu.querySelector("li.title")
+            if (item) {
+                item.onclick = hide_popup_menu
+                item.textContent = title
+            }
+        }
+
+        let w = menu.clientWidth
+        let h = menu.clientHeight
+        let x = Math.max(5, Math.min(evt.clientX - w / 2, window.innerWidth - w - 5))
+        let y = Math.max(5, Math.min(evt.clientY - 12, window.innerHeight - h - 40))
+        menu.style.left = x + "px"
+        menu.style.top = y + "px"
+
+        evt.stopPropagation()
+    } else {
+        menu.style.display = "none"
+    }
 }
 
 function hide_popup_menu() {
-    let popup = document.getElementById("popup")
-    popup.style.display = 'none'
-    if (current_popup_card) {
-        cards[current_popup_card].element.classList.remove("selected")
-        current_popup_card = 0
-    }
+    document.getElementById("popup").style.display = "none"
 }
 
 function is_card_enabled(card) {
@@ -480,23 +512,18 @@ function is_card_enabled(card) {
     return false
 }
 
-function is_card_action(action, card) {
+function is_action(action, card) {
     return view.actions && view.actions[action] && view.actions[action].includes(card)
 }
 
 function on_click_card(evt) {
     let card = evt.target.card
-    if (is_card_action('card', card)) {
+    if (is_action('card', card)) {
         send_action('card', card)
     } else {
-        let menu = card_action_menu.filter(a => is_card_action(a, card))
-        if (menu.length > 0) {
-            current_popup_card = card
-            show_popup_menu(evt, menu)
-        }
+        show_popup_menu(evt, "popup", card, cards[card].name)
     }
 }
-
 
 function on_play_event() {
     send_action('play_event', current_popup_card)
@@ -1110,6 +1137,10 @@ function toggle_marker(id, show) {
         element.classList.remove("show")
 }
 
+function on_click_space_tip(s) {
+    scroll_into_view(ui.space_list[s])
+}
+
 function update_map() {
     if (!view)
         return
@@ -1175,4 +1206,4 @@ function on_update() {
 
 drag_element_with_mouse("#removed", "#removed_header")
 drag_element_with_mouse("#discard", "#discard_header")
-scroll_with_middle_mouse("main")
+
