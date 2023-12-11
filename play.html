@@ -21,16 +21,21 @@
   <li class="title">CARD
   <li class="separator">
   <li data-action="play_event"> &#x1f3b4; &nbsp; Play Event
-  <li data-action="play_ops"> &#x1f464; &nbsp; Play Operations
+  <li data-action="play_ops"> &#x1f464; &nbsp; Play for Operations
   <li data-action="play_sr"> &#x1f465; &nbsp; Strategic Redeployment
   <li data-action="play_rps"> &#x1f528; &nbsp; Replacement Points
 </menu>
+<menu id="activation_popup" class="popup_menu">
+  <li data-action="activate_move"> Activate to Move
+  <li data-action="activate_attack"> Activate to Attack
+  <li data-action="deactivate"> Deactivate
+</menu>
 
-<div id="activation_popup" class="popup_menu" onmouseleave="hide_activation_menu()">
+<!--div id="activation_popup" class="popup_menu" onmouseleave="hide_activation_menu()">
   <div id="menu_activate_move" class="always" onclick="on_activate_move()">Move</div>
   <div id="menu_activate_attack" class="always" onclick="on_activate_attack()">Attack</div>
   <div id="menu_deactivate" class="always" onclick="on_deactivate()">Deactivate</div>
-</div>
+</div-->
 
 <div id="removed" class="card_list_dialog hide">
   <div id="removed_x" class="card_list_x" onclick="hide_card_list('removed')">&#x274c;</div>
